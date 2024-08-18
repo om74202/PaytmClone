@@ -16,6 +16,7 @@ accountRoute.get("/balance",authMiddleware,async (req,res)=>{
 
 accountRoute.post("/transfer",authMiddleware,async (req,res)=>{
     const session=await mongoose.startSession();
+    session.startTransaction();
     const {amount,to}=req.body;
     const account=await Account.findOne({
         userId:req.userId
@@ -40,7 +41,7 @@ accountRoute.post("/transfer",authMiddleware,async (req,res)=>{
     }
 
     await Account.updateOne({userId:req.userId},{$inc:{balance:-amount}}).session(session);
-    await toAccount.updateOne({userId:req.userId},{$inc:{balance:amount}}).session(session);
+    await toAccount.updateOne({userId:to},{$inc:{balance:amount}}).session(session);
 
     await session.commitTransaction();
     res.json({

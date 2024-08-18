@@ -11,30 +11,32 @@ const userRoute=express.Router();
 const signupSchema=zod.object({
     username:zod.string().email(),
     password:zod.string(),
-    firstName:zod.string(),
-    lastName:zod.string()
+    first_name:zod.string(),
+    last_name:zod.string()
 })
 userRoute.post("/signup",async (req,res)=>{
     const body=req.body;
-    const {sucess}=signupSchema.safeParse(body);
-    if(!sucess){
+    const {success}=signupSchema.safeParse(body);
+    console.log(success);
+    if(!success){
         return res.status(411).json({
-            message:"user already exists/wrong input"
+            success,
+            message:"user already exists/wrong "
         })
     }
 
-    const user=User.findOne({
+    const user= await User.findOne({
         username:body.username
     })
 
-    if(user._id){
+    if(user!=null && user._id){
         return res.json({
             message:"email is already taken"
         })
     }
 
     const dbUser=await User.create(body);
-    const userId=user._id;
+    const  userId=dbUser._id;  
 
     await Account.create({
         userId,
@@ -59,8 +61,8 @@ const signinSchema=zod.object({
 
 userRoute.post("/signin",async (req,res)=>{
     const body=req.body;
-    const {sucess}=signinSchema.safeParse(body);
-    if(!sucess){
+    const {success}=signinSchema.safeParse(body);
+    if(!success){
         return res.status(411).json({
             message:"Invalid Input"
         })
@@ -91,8 +93,8 @@ const updateBody=zod.object({
 })
 
 userRoute.put("/",authMiddleware,async (req,res)=>{
-    const {sucess}=updateBody.safeParse(req.body);
-    if(!sucess){
+    const {success}=updateBody.safeParse(req.body);
+    if(!success){
         return res.status(411).json({
             message:"error while updating information"
         })
@@ -109,24 +111,30 @@ userRoute.get("/bulk",async (req,res)=>{
     const filter=req.query.filter || "";
     const users=await User.find({
         $or:[{
-            firstName:{
+            first_name:{
                 "$regex":filter
             }
         },{
-            lastName:{
+            last_name:{
                 "$regex":filter
             }
         }]
     })
+    console.log(filter);
+    if (users.length === 0) {
+        console.log("No users found with filter:"); // Log for debugging
+     }
     res.json({
         user:users.map(user=>({
+            filter,
             username:user.username,
-            firstName:user.firstName,
-            lastName:user.lastName,
+            firstName:user.first_name,
+            lastName:user.last_name,
             _id:user._id
 
         }))
     })
 })
+
 
 module.exports=userRoute;
